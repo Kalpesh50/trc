@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TRON Wallet Connection</title>
+    <!-- Load TronWeb from specified CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/tronweb@6.0.0/dist/TronWeb.js"></script>
+</head>
+<body>
+    <button id="connectButton">Connect Wallet</button>
+    <p id="status">Not connected</p>
+
+    <script>
+        const TRONGRID_API = 'https://api.trongrid.io'; // Public TRON node URL
+
+        async function connectWallet() {
+            try {
+                let tronWeb;
+
+                // Step 1: Check if tronWeb is injected (e.g., by TronLink or Trust Wallet)
+                if (typeof window.tronWeb !== 'undefined' && window.tronWeb.defaultAddress.base58) {
+                    tronWeb = window.tronWeb;
+                    const address = tronWeb.defaultAddress.base58;
+                    document.getElementById("status").innerText = `Connected: ${address}`;
+                    return;
+                }
+
+                // Step 2: Fallback to initializing TronWeb with public node
+                tronWeb = new TronWeb(TRONGRID_API, TRONGRID_API, TRONGRID_API);
+                const account = await tronWeb.trx.getAccount();
+                const address = account.address ? tronWeb.address.fromHex(account.address) : null;
+
+                if (address) {
+                    document.getElementById("status").innerText = `Connected: ${address}`;
+                } else {
+                    document.getElementById("status").innerText = "No wallet detected. Please use a TRON-compatible wallet.";
+                }
+            } catch (error) {
+                console.error("Connection failed:", error);
+                document.getElementById("status").innerText = "Connection failed. Ensure you're using a TRON-compatible wallet.";
+            }
+        }
+
+        document.getElementById("connectButton").addEventListener("click", connectWallet);
+    </script>
+</body>
+</html>
