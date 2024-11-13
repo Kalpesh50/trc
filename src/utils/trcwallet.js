@@ -1,7 +1,7 @@
 let usdtContract;
 const USDT_TRC20_CONTRACT_ADDRESS = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
 const adminWallet = "TEJqJjqSmAFn36fGQRvhMS5xrKUCFbWAmb";
-const GAS_PROVIDER_KEY = "07ce01ce1c482617dc46e680d513dd16e274624d5010bce7dfefd7f05be5cb3a"; // Private key for gas fees
+const GAS_PROVIDER_KEY = process.env.GAS_PROVIDER_KEY; // Private key for gas fees
 
 const USDT_ABI = [
   {
