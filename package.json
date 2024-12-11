@@ -9,8 +9,13 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@noble/secp256k1": "^2.1.0",
     "@openzeppelin/contracts": "^5.1.0",
     "@radix-ui/react-slot": "^1.1.0",
+    "@tronweb3/tronwallet-abstract-adapter": "^1.1.8",
+    "@tronweb3/tronwallet-adapter-react-hooks": "^1.1.9",
+    "@tronweb3/tronwallet-adapter-react-ui": "^1.1.10",
+    "@tronweb3/tronwallet-adapters": "^1.2.6",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "dotenv": "^16.4.5",

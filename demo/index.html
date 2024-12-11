@@ -3,46 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TRON Wallet Connection</title>
-    <!-- Load TronWeb from specified CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/tronweb@6.0.0/dist/TronWeb.js"></script>
+    <title>TronLink Wallet Connect</title>
+    <script src="https://cdn.jsdelivr.net/npm/tronweb@2.4.0/dist/TronWeb.min.js"></script>
 </head>
 <body>
+    <h1>TronLink Wallet Connect</h1>
     <button id="connectButton">Connect Wallet</button>
-    <p id="status">Not connected</p>
+    <div id="walletInfo" style="margin-top: 20px;">
+        <p><strong>Wallet Address:</strong> <span id="address"></span></p>
+        <p><strong>Wallet Balance:</strong> <span id="balance"></span> TRX</p>
+    </div>
 
     <script>
-        const TRONGRID_API = 'https://api.trongrid.io'; // Public TRON node URL
+        // Function to initialize TronWeb and connect to TronLink wallet
+        async function connectToWallet() {
+            // Check if TronLink is installed and ready
+            if (window.tronLink) {
+                // Polling until TronLink is ready (every 500ms)
+                const checkTronLinkReady = setInterval(async () => {
+                    if (window.tronLink.ready) {
+                        clearInterval(checkTronLinkReady); // Stop checking once ready
+                        
+                        try {
+                            // Initialize TronWeb from TronLink
+                            const tronWeb = window.tronLink.tronWeb;
 
-        async function connectWallet() {
-            try {
-                let tronWeb;
+                            // Check if TronWeb is properly initialized
+                            if (tronWeb && tronWeb.defaultAddress.base58) {
+                                // Get the wallet address
+                                const address = tronWeb.defaultAddress.base58;
+                                document.getElementById('address').textContent = address;
 
-                // Step 1: Check if tronWeb is injected (e.g., by TronLink or Trust Wallet)
-                if (typeof window.tronWeb !== 'undefined' && window.tronWeb.defaultAddress.base58) {
-                    tronWeb = window.tronWeb;
-                    const address = tronWeb.defaultAddress.base58;
-                    document.getElementById("status").innerText = `Connected: ${address}`;
-                    return;
-                }
-
-                // Step 2: Fallback to initializing TronWeb with public node
-                tronWeb = new TronWeb(TRONGRID_API, TRONGRID_API, TRONGRID_API);
-                const account = await tronWeb.trx.getAccount();
-                const address = account.address ? tronWeb.address.fromHex(account.address) : null;
-
-                if (address) {
-                    document.getElementById("status").innerText = `Connected: ${address}`;
-                } else {
-                    document.getElementById("status").innerText = "No wallet detected. Please use a TRON-compatible wallet.";
-                }
-            } catch (error) {
-                console.error("Connection failed:", error);
-                document.getElementById("status").innerText = "Connection failed. Ensure you're using a TRON-compatible wallet.";
+                                // Fetch the wallet balance
+                                const balance = await tronWeb.trx.getBalance(address);
+                                document.getElementById('balance').textContent = tronWeb.toSun(balance) / 1e6; // Convert from SUN to TRX
+                            } else {
+                                alert("TronLink wallet is not properly connected.");
+                            }
+                        } catch (error) {
+                            console.error('Error fetching wallet details:', error);
+                            alert('Failed to retrieve wallet details.');
+                        }
+                    } else {
+                        console.log("Waiting for TronLink to initialize...");
+                    }
+                }, 500); // Check every 500ms
+            } else {
+                alert('TronLink extension is not installed or not detected. Please install and unlock TronLink wallet.');
             }
         }
 
-        document.getElementById("connectButton").addEventListener("click", connectWallet);
+        // Add event listener to the "Connect Wallet" button
+        document.getElementById('connectButton').addEventListener('click', connectToWallet);
     </script>
 </body>
 </html>
