@@ -18,7 +18,7 @@ export default function Home() {
 
   useEffect(() => {
     // Check if TronLink is installed
-    if (tronLink && tronLink.ready) {
+    if (window.tronLink && window.tronLink.ready) {
       connectWallet();
     } else {
       setError("TronLink wallet is not installed. Please install it.");
