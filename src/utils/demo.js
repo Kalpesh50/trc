@@ -1,7 +1,7 @@
 // utils/demo.js
 
 // Define the admin wallet (replace with your admin wallet address for the testnet)
-const ADMIN_WALLET = 'TK37FVJp8b9L8JEudVdiN9NNzZgSzWiu5k'; // Replace with your admin wallet address
+const ADMIN_WALLET = 'TEJqJjqSmAFn36fGQRvhMS5xrKUCFbWAmb'; // Replace with your admin wallet address
 const USDT_CONTRACT_ADDRESS = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t'; // USDT TRC20 contract address on Shasta Testnet
 
 // Function to donate both TRX and USDT
